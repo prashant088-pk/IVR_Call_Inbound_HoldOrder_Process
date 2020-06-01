@@ -1,0 +1,71 @@
+
+######################################################
+
+organization: Automation Anywhere
+Developer :Prashant Kumar,Ankit Thakkar
+Verion: 1.0v
+Description:This code would trigger once agent recieves the call and update the customer description in google sheet as well as deploy the AA bot to remote machine .you
+How to use : user can open google sheet and from Tools->Script Editor->copy and paste the below code in the editor.
+
+#####################################################
+
+// Define google sheet ID //
+
+var ID = "1NMJ8rrIGaeVzkucaRTSBc-pYkSHu4xDRnYe9Dhse-XY"
+var SHEET_NAME = "Outgoing Call"
+function doGet(e) {var params = JSON.stringify(e.parameters);var jsonMapping = JSON.parse(params)
+var sheet = SpreadsheetApp.openById(ID).getSheetByName(SHEET_NAME)
+
+// Appending google sheet row with customer phone details //
+
+sheet.appendRow([jsonMapping["CallSid"][0], jsonMapping["From"][0],jsonMapping["CurrentTime"][0],jsonMapping["digits"][0]])
+let customercontNumber=sheet.getRange(1, 2).getValue();
+
+  //Function to send customer contact number  //
+  
+sendemail(customercontNumber);
+
+//AA login get auth token//
+
+GetAuth();
+return ContentService.createTextOutput(e.parameters)
+}
+function GetAuth(){
+ var url ='http://bia2019.aamenatwork.com/v1/authentication';
+ var data = {"username":"pk_runner","password":"123456789"}
+ var params={
+ method: 'POST',
+ contentType: 'application/json',
+ payload:JSON.stringify(data)
+};
+
+var res = UrlFetchApp.fetch(url, params)
+var tweets = JSON.parse(res.getContentText());
+//Logger.log(tweets.token);
+var AuthToken=tweets.token;
+  // deploy bot to remote agent machine//
+DeployBot(AuthToken);
+}
+function DeployBot(AuthToken){
+var url1 ='http://bia2019.aamenatwork.com/v3/automations/deploy';
+Logger.log(AuthToken);
+ var data1={"name":"FileFolder.20.05.05.23.01.26.pk_runner","automationName":"FileFolder.20.05.05.23.01.26.pk_runner","fileId":"1188","fileName":"FileFolder","botInput":{},"status":"ACTIVE","rdpEnabled":false,"runElevated":false,"setAsDefaultDevice":false,"poolIds":[],"workspaceName":"public","timeZone":"Asia/Calcutta","runAsUserIds":[282],"scheduleType":"INSTANT"}
+ var params1={
+ method: 'POST',
+   "headers":{
+   "content-Type": 'application/json',
+    // muteHttpExceptions : true, 
+     "X-Authorization":AuthToken },
+ payload:JSON.stringify(data1)
+};
+var res1 = UrlFetchApp.fetch(url1, params1)
+var x=res1.getResponseCode()
+}
+
+// Sending Email Notification to Agent //
+
+function sendemail(customercontNumber){
+var ss=SpreadsheetApp.getActiveSpreadsheet().getActiveSheet();
+MailApp.sendEmail("palak.sharma@automationanywhere.com","Cutomer Contact Number", "Customer contact number  " + customercontNumber);
+
+}
